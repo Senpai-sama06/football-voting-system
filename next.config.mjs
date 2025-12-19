@@ -3,7 +3,7 @@ const nextConfig = {
   output: 'export',
   images: { unoptimized: true },
   basePath: '/football-voting-system',
-  assetPrefix: '/football-voting-system',
+  trailingSlash: true,
 };
 
 export default nextConfig;
