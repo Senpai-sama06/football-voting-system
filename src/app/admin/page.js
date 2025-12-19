@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminPage() {
+export default async function AdminPage() {
     const cookieStore = cookies();
     const isAdmin = cookieStore.get('admin_session');
 
@@ -13,7 +13,7 @@ export default function AdminPage() {
         redirect('/');
     }
 
-    const players = getPlayers();
+    const players = await getPlayers();
 
     return (
         <div style={{ marginTop: '2rem', paddingBottom: '3rem' }}>

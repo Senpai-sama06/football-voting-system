@@ -6,7 +6,7 @@ export async function POST(request) {
         const body = await request.json();
         const { userId, pin } = body;
 
-        const players = getPlayers();
+        const players = await getPlayers();
         const player = players.find(p => p.id === userId);
 
         if (player && player.pin === pin) {

@@ -1,98 +1,158 @@
-import fs from 'fs';
-import path from 'path';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const PLAYERS_FILE = path.join(DATA_DIR, 'players.json');
-const VOTES_FILE = path.join(DATA_DIR, 'votes.json');
-const GAMES_FILE = path.join(DATA_DIR, 'games.json');
+import dbConnect from '@/lib/db';
+import Player from '@/models/Player';
+import Vote from '@/models/Vote';
+import Game from '@/models/Game';
 
-// Ensure data directory exists
-function ensureDataDir() {
-    if (!fs.existsSync(DATA_DIR)) {
-        console.log('Creating data directory...');
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+// Ensure DB connection is established for any operation
+async function init() {
+    await dbConnect();
 }
 
-export function getPlayers() {
-    ensureDataDir();
-    if (!fs.existsSync(PLAYERS_FILE)) {
-        // Seed default players if not exists
-        const defaultPlayers = [
-            { id: '1', name: 'Alex' },
-            { id: '2', name: 'Ben' }
-        ];
-        fs.writeFileSync(PLAYERS_FILE, JSON.stringify(defaultPlayers, null, 2));
-        return defaultPlayers;
-    }
-    const data = fs.readFileSync(PLAYERS_FILE, 'utf8');
-    return JSON.parse(data);
-}
-
-export function getVotes() {
-    ensureDataDir();
-    if (!fs.existsSync(VOTES_FILE)) {
+export async function getPlayers() {
+    await init();
+    try {
+        let players = await Player.find({});
+        if (players.length === 0) {
+            // Seed default players if not exists
+            const defaultPlayers = [
+                { id: '1', name: 'Alex' },
+                { id: '2', name: 'Ben' }
+            ];
+            await Player.insertMany(defaultPlayers);
+            return defaultPlayers;
+        }
+        // Return plain objects to avoid serialization issues in Next.js props
+        return players.map(p => ({
+            id: p.id,
+            name: p.name,
+            active: p.active
+        }));
+    } catch (error) {
+        console.error("Error getting players:", error);
         return [];
     }
-    const data = fs.readFileSync(VOTES_FILE, 'utf8');
-    return JSON.parse(data);
 }
 
-export function saveVote(vote) {
-    ensureDataDir();
-    const votes = getVotes();
-
-    votes.push({
-        ...vote,
-        timestamp: new Date().toISOString()
-    });
-    fs.writeFileSync(VOTES_FILE, JSON.stringify(votes, null, 2));
-    return true;
+export async function getVotes() {
+    await init();
+    try {
+        const votes = await Vote.find({});
+        return votes.map(v => ({
+            sessionId: v.sessionId,
+            voterId: v.voterId,
+            ratings: v.ratings,
+            timestamp: v.timestamp.toISOString()
+        }));
+    } catch (error) {
+        console.error("Error getting votes:", error);
+        return [];
+    }
 }
 
-export function getSessionVotes(sessionId) {
-    const votes = getVotes();
-    return votes.filter(v => v.sessionId === sessionId);
+export async function saveVote(vote) {
+    await init();
+    try {
+        await Vote.create({
+            ...vote,
+            // timestamp is auto-created by Mongoose default
+        });
+        return true;
+    } catch (error) {
+        console.error("Error saving vote:", error);
+        return false;
+    }
+}
+
+export async function getSessionVotes(sessionId) {
+    await init();
+    try {
+        const votes = await Vote.find({ sessionId });
+        return votes.map(v => ({
+            sessionId: v.sessionId,
+            voterId: v.voterId,
+            ratings: Object.fromEntries(v.ratings), // Convert Map to Object for simple JSON usage if needed
+            timestamp: v.timestamp.toISOString()
+        }));
+    } catch (error) {
+        console.error("Error getting session votes:", error);
+        return [];
+    }
 }
 
 // GAME MANAGEMENT
 
-export function getGames() {
-    ensureDataDir();
-    if (!fs.existsSync(GAMES_FILE)) {
+export async function getGames() {
+    await init();
+    try {
+        const games = await Game.find({});
+        return games.map(g => ({
+            id: g.id,
+            name: g.name,
+            date: g.date.toISOString(),
+            active: g.active
+        }));
+    } catch (error) {
+        console.error("Error getting games:", error);
         return [];
     }
-    const data = fs.readFileSync(GAMES_FILE, 'utf8');
-    return JSON.parse(data);
 }
 
-export function getActiveGame() {
-    const games = getGames();
-    return games.find(g => g.active) || null;
+export async function getActiveGame() {
+    await init();
+    try {
+        const game = await Game.findOne({ active: true });
+        if (!game) return null;
+        return {
+            id: game.id,
+            name: game.name,
+            date: game.date.toISOString(),
+            active: game.active
+        };
+    } catch (error) {
+        console.error("Error getting active game:", error);
+        return null;
+    }
 }
 
-export function createGame(name) {
-    ensureDataDir();
-    const games = getGames();
+export async function createGame(name) {
+    await init();
+    try {
+        // Deactivate others
+        await Game.updateMany({}, { active: false });
 
-    // Deactivate others
-    const updatedGames = games.map(g => ({ ...g, active: false }));
+        // Count for default name
+        const count = await Game.countDocuments();
 
-    // Create new
-    const newGame = {
-        id: 'game_' + Date.now(),
-        name: name || `Game ${updatedGames.length + 1}`,
-        date: new Date().toISOString(),
-        active: true
-    };
+        // Create new
+        const newGame = await Game.create({
+            id: 'game_' + Date.now(),
+            name: name || `Game ${count + 1}`,
+            active: true
+        });
 
-    updatedGames.push(newGame);
-    fs.writeFileSync(GAMES_FILE, JSON.stringify(updatedGames, null, 2));
+        // Reset all players to INACTIVE so admin can select who played
+        await Player.updateMany({}, { active: false });
 
-    // Reset all players to INACTIVE so admin can select who played
-    const players = getPlayers();
-    const resetPlayers = players.map(p => ({ ...p, active: false }));
-    fs.writeFileSync(PLAYERS_FILE, JSON.stringify(resetPlayers, null, 2));
+        return {
+            id: newGame.id,
+            name: newGame.name,
+            date: newGame.date.toISOString(),
+            active: newGame.active
+        };
+    } catch (error) {
+        console.error("Error creating game:", error);
+        throw error;
+    }
+}
 
-    return newGame;
+export async function updatePlayerStatus(playerId, active) {
+    await init();
+    try {
+        await Player.updateOne({ id: playerId }, { active });
+        return true;
+    } catch (error) {
+        console.error("Error updating player:", error);
+        return false;
+    }
 }

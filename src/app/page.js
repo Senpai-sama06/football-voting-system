@@ -3,8 +3,8 @@ import LoginForm from '@/components/LoginForm';
 
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
-  const players = getPlayers();
+export default async function Home() {
+  const players = await getPlayers();
 
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem', textAlign: 'center' }}>

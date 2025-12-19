@@ -3,15 +3,15 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic'; // Ensure it re-fetches on refresh
 
-export default function ResultsPage({ searchParams }) {
-    const players = getPlayers();
+export default async function ResultsPage({ searchParams }) {
+    const players = await getPlayers();
 
     // Determine Session ID
     let sessionId = searchParams.gameId;
     let gameName = "Session Results";
 
     if (!sessionId) {
-        const activeGame = getActiveGame();
+        const activeGame = await getActiveGame();
         if (activeGame) {
             sessionId = activeGame.id;
             gameName = activeGame.name;
@@ -21,12 +21,12 @@ export default function ResultsPage({ searchParams }) {
         }
     } else {
         // Look up name
-        const games = getGames();
+        const games = await getGames();
         const g = games.find(g => g.id === sessionId);
         if (g) gameName = g.name;
     }
 
-    const votes = getSessionVotes(sessionId);
+    const votes = await getSessionVotes(sessionId);
 
     // Calculate stats
     // stats = { playerId: { sum: 0, count: 0 } }

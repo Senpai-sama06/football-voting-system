@@ -3,8 +3,8 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default function HistoryPage() {
-    const games = getGames().reverse(); // Newest first
+export default async function HistoryPage() {
+    const games = (await getGames()).reverse(); // Newest first
 
     return (
         <div style={{ paddingBottom: '40px' }}>

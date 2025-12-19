@@ -11,11 +11,11 @@ export async function POST(request) {
         }
 
         // Use Active Game ID
-        const activeGame = getActiveGame();
+        const activeGame = await getActiveGame();
         // Fallback to Date if no game created yet
         const sessionId = activeGame ? activeGame.id : new Date().toISOString().split('T')[0];
 
-        saveVote({
+        await saveVote({
             sessionId,
             voterId,
             ratings

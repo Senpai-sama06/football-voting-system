@@ -11,7 +11,7 @@ export async function POST(request) {
             name = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
-        const newGame = createGame(name);
+        const newGame = await createGame(name);
         return NextResponse.json({ success: true, game: newGame });
     } catch (error) {
         return NextResponse.json({ error: 'Server Error' }, { status: 500 });
