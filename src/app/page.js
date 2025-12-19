@@ -1,10 +1,28 @@
+
+'use client';
+
 import { getPlayers } from '@/lib/storage';
 import LoginForm from '@/components/LoginForm';
+import { useEffect, useState } from 'react';
 
-export const dynamic = 'force-dynamic';
+export default function Home() {
+  const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function Home() {
-  const players = await getPlayers();
+  useEffect(() => {
+    getPlayers().then(data => {
+      setPlayers(data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem', textAlign: 'center' }}>
+        <p>Loading players...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem', textAlign: 'center' }}>

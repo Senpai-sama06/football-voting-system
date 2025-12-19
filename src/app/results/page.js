@@ -1,62 +1,81 @@
+
+'use client';
+
 import { getPlayers, getSessionVotes, getActiveGame, getGames } from '@/lib/storage';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 
-export const dynamic = 'force-dynamic'; // Ensure it re-fetches on refresh
+function ResultsContent() {
+    const searchParams = useSearchParams();
+    const [stats, setStats] = useState([]);
+    const [gameName, setGameName] = useState("Loading...");
+    const [loading, setLoading] = useState(true);
 
-export default async function ResultsPage({ searchParams }) {
-    const players = await getPlayers();
+    const gameIdParam = searchParams.get('gameId');
 
-    // Determine Session ID
-    let sessionId = searchParams.gameId;
-    let gameName = "Session Results";
+    useEffect(() => {
+        async function loadData() {
+            setLoading(true);
+            const [players, games] = await Promise.all([
+                getPlayers(),
+                getGames()
+            ]);
 
-    if (!sessionId) {
-        const activeGame = await getActiveGame();
-        if (activeGame) {
-            sessionId = activeGame.id;
-            gameName = activeGame.name;
-        } else {
-            // Fallback to today
-            sessionId = new Date().toISOString().split('T')[0];
-        }
-    } else {
-        // Look up name
-        const games = await getGames();
-        const g = games.find(g => g.id === sessionId);
-        if (g) gameName = g.name;
-    }
+            let sessionId = gameIdParam;
+            let name = "Session Results";
 
-    const votes = await getSessionVotes(sessionId);
-
-    // Calculate stats
-    // stats = { playerId: { sum: 0, count: 0 } }
-    const stats = {};
-
-    // Initialize
-    players.forEach(p => {
-        stats[p.id] = { sum: 0, count: 0, name: p.name };
-    });
-
-    // Aggregate
-    votes.forEach(vote => {
-        Object.entries(vote.ratings).forEach(([targetId, rating]) => {
-            if (stats[targetId]) {
-                stats[targetId].sum += rating;
-                stats[targetId].count += 1;
+            if (!sessionId) {
+                const active = await getActiveGame();
+                if (active) {
+                    sessionId = active.id;
+                    name = active.name;
+                } else {
+                    sessionId = new Date().toISOString().split('T')[0]; // Fallback
+                }
+            } else {
+                const g = games.find(g => g.id === sessionId);
+                if (g) name = g.name;
             }
-        });
-    });
 
-    // Compute averages
-    const results = Object.entries(stats).map(([id, data]) => ({
-        id,
-        name: data.name,
-        average: data.count > 0 ? (data.sum / data.count).toFixed(1) : 0,
-        count: data.count
-    }));
+            setGameName(name);
 
-    // Sort: Average DESC, then Vote Count DESC
-    results.sort((a, b) => b.average - a.average || b.count - a.count);
+            const votes = await getSessionVotes(sessionId);
+
+            // Calc stats
+            const statMap = {};
+            players.forEach(p => {
+                statMap[p.id] = { sum: 0, count: 0, name: p.name };
+            });
+
+            votes.forEach(vote => {
+                // vote.ratings is object
+                Object.entries(vote.ratings).forEach(([targetId, rating]) => {
+                    if (statMap[targetId]) {
+                        statMap[targetId].sum += rating;
+                        statMap[targetId].count += 1;
+                    }
+                });
+            });
+
+            const results = Object.entries(statMap).map(([id, data]) => ({
+                id,
+                name: data.name,
+                average: data.count > 0 ? (data.sum / data.count).toFixed(1) : 0,
+                count: data.count
+            }));
+
+            // Sort
+            results.sort((a, b) => b.average - a.average || b.count - a.count);
+
+            setStats(results);
+            setLoading(false);
+        }
+
+        loadData();
+    }, [gameIdParam]);
+
+    if (loading) return <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>Loading results...</div>;
 
     return (
         <div style={{ paddingBottom: '40px' }}>
@@ -73,7 +92,7 @@ export default async function ResultsPage({ searchParams }) {
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {results.map((player, index) => {
+                {stats.map((player, index) => {
                     const isTop3 = index < 3;
                     const rankColors = ['#fbbf24', '#94a3b8', '#b45309']; // Gold, Silver, Bronze
                     const borderColor = index < 3 ? rankColors[index] : 'var(--glass-border)';
@@ -114,5 +133,13 @@ export default async function ResultsPage({ searchParams }) {
                 </Link>
             </div>
         </div>
+    );
+}
+
+export default function ResultsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ResultsContent />
+        </Suspense>
     );
 }

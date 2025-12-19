@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { updatePlayerStatus, createGame } from '@/lib/storage';
 
 export default function AdminDashboard({ initialPlayers }) {
     const [players, setPlayers] = useState(initialPlayers);
@@ -17,14 +19,11 @@ export default function AdminDashboard({ initialPlayers }) {
         ));
 
         try {
-            await fetch('/api/admin/roster', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ playerId, active: newStatus })
-            });
+            const res = await updatePlayerStatus(playerId, newStatus);
+            if (!res.success && res.error) throw new Error(res.error);
             router.refresh();
         } catch (e) {
-            console.error('Failed to update status');
+            console.error('Failed to update status', e);
             // Revert
             setPlayers(prev => prev.map(p =>
                 p.id === playerId ? { ...p, active: currentStatus } : p
@@ -37,19 +36,17 @@ export default function AdminDashboard({ initialPlayers }) {
 
         setCreatingGame(true);
         try {
-            const res = await fetch('/api/admin/game', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}) // Empty body triggers auto-name
-            });
+            // Empty name triggers auto-naming in Apps Script if handled there, 
+            // OR we generate name here. 
+            // My apps_script.js simple createGame uses data.name directly.
+            // Let's generate a date-based name here.
+            const date = new Date();
+            const name = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-            if (res.ok) {
-                // Force reload to get fresh data from server (roster reset)
-                window.location.reload();
-            } else {
-                alert('Failed to create game');
-                setCreatingGame(false);
-            }
+            await createGame(name);
+
+            // Force reload to get fresh data
+            window.location.reload();
         } catch (e) {
             console.error(e);
             alert('Error creating game');

@@ -1,7 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { saveVote, getActiveGame } from '@/lib/storage';
 
 export default function VotingForm({ voter, others }) {
     const router = useRouter();
@@ -27,16 +29,17 @@ export default function VotingForm({ voter, others }) {
         });
 
         try {
-            const res = await fetch('/api/vote', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    voterId: voter.id,
-                    ratings: finalRatings
-                })
+            // Get Session ID (Client Side now)
+            const activeGame = await getActiveGame();
+            const sessionId = activeGame ? activeGame.id : new Date().toISOString().split('T')[0];
+
+            const res = await saveVote({
+                sessionId,
+                voterId: voter.id,
+                ratings: finalRatings
             });
 
-            if (res.ok) {
+            if (res.success) {
                 router.push('/results');
             } else {
                 alert('Failed to submit votes');

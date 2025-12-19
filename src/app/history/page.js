@@ -1,10 +1,22 @@
+
+'use client';
+
 import { getGames } from '@/lib/storage';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-export const dynamic = 'force-dynamic';
+export default function HistoryPage() {
+    const [games, setGames] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-export default async function HistoryPage() {
-    const games = (await getGames()).reverse(); // Newest first
+    useEffect(() => {
+        getGames().then(data => {
+            setGames(data.reverse());
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) return <div style={{ textAlign: 'center', marginTop: '2rem' }}>Loading history...</div>;
 
     return (
         <div style={{ paddingBottom: '40px' }}>
