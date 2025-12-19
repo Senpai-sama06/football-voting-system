@@ -15,7 +15,7 @@ export default function AdminDashboard({ initialPlayers }) {
         const newStatus = !currentStatus;
         // Optimistic update
         setPlayers(prev => prev.map(p =>
-            p.id === playerId ? { ...p, active: newStatus } : p
+            String(p.id) === String(playerId) ? { ...p, active: newStatus } : p
         ));
 
         try {
@@ -26,7 +26,7 @@ export default function AdminDashboard({ initialPlayers }) {
             console.error('Failed to update status', e);
             // Revert
             setPlayers(prev => prev.map(p =>
-                p.id === playerId ? { ...p, active: currentStatus } : p
+                String(p.id) === String(playerId) ? { ...p, active: currentStatus } : p
             ));
         }
     };

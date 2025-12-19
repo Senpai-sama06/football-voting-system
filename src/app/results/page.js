@@ -34,7 +34,7 @@ function ResultsContent() {
                     sessionId = new Date().toISOString().split('T')[0]; // Fallback
                 }
             } else {
-                const g = games.find(g => g.id === sessionId);
+                const g = games.find(g => String(g.id) === sessionId);
                 if (g) name = g.name;
             }
 
@@ -45,15 +45,16 @@ function ResultsContent() {
             // Calc stats
             const statMap = {};
             players.forEach(p => {
-                statMap[p.id] = { sum: 0, count: 0, name: p.name };
+                statMap[String(p.id)] = { sum: 0, count: 0, name: p.name };
             });
 
             votes.forEach(vote => {
                 // vote.ratings is object
                 Object.entries(vote.ratings).forEach(([targetId, rating]) => {
-                    if (statMap[targetId]) {
-                        statMap[targetId].sum += rating;
-                        statMap[targetId].count += 1;
+                    const tid = String(targetId);
+                    if (statMap[tid]) {
+                        statMap[tid].sum += rating;
+                        statMap[tid].count += 1;
                     }
                 });
             });

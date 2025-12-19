@@ -28,13 +28,13 @@ function VoteContent() {
 
     if (loading) return <div className="glass-panel" style={{ padding: '2rem' }}>Loading...</div>;
 
-    const voter = players.find(p => p.id === voterId);
+    const voter = players.find(p => String(p.id) === voterId);
     if (!voter) {
         // If loaded and not found, maybe invalid ID
         return <div className="glass-panel" style={{ padding: '2rem' }}>Voter not found.</div>;
     }
 
-    const others = players.filter(p => p.id !== voterId && p.active);
+    const others = players.filter(p => String(p.id) !== voterId && p.active);
 
     return (
         <div>
