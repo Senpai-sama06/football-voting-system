@@ -1,0 +1,74 @@
+:root {
+  /* FIFA Mobile Inspired Palette */
+  --bg-primary: #1a0b2e;
+  /* Deep Purple */
+  --bg-secondary: #2d1b4e;
+  /* Lighter Purple */
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  /* Silver-ish */
+
+  /* Game Accents */
+  --accent-blue: #00f2ea;
+  /* Neon Cyan */
+  --accent-purple: #7000ff;
+  /* Electric Purple */
+  --accent-pink: #ff0055;
+  /* Hot Pink */
+  --accent-gold: #ffd700;
+  /* Gold */
+  --accent-green: #00ff9d;
+  /* Neon Green */
+
+  --glass-bg: rgba(45, 27, 78, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image:
+    linear-gradient(135deg, #1a0b2e 0%, #43125e 100%),
+    radial-gradient(circle at 50% 0%, rgba(0, 242, 234, 0.2) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
